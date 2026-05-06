@@ -7,7 +7,8 @@ from sklearn.metrics import accuracy_score
 import mlflow
 import mlflow.sklearn
 
-mlflow.set_tracking_uri("file:./mlruns")
+# JANGAN set_tracking_uri di sini
+# mlflow run sudah otomatis mengatur tracking ke folder mlruns/ di root repo
 
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +16,6 @@ if __name__ == "__main__":
     df = pd.read_csv(data_path)
 
     y = df["target"]
-    # Konversi ke integer jika ternyata float hasil scaling
     if y.dtype != int:
         y = np.where(y > y.mean(), 1, 0)
 
@@ -30,7 +30,6 @@ if __name__ == "__main__":
 
         acc = accuracy_score(y_test, model.predict(X_test))
         mlflow.log_metric("accuracy", acc)
-
         mlflow.sklearn.log_model(model, "model")
 
         print(f"Accuracy: {acc}")
