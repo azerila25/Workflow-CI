@@ -1,21 +1,37 @@
+import os
 import pandas as pd
-from sklearn.ensemble import RandomForestRegressor  # Ubah dari Classifier ke Regressor
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 import mlflow
 import mlflow.sklearn
 
+mlflow.set_tracking_uri("file:./mlruns")
+
 if __name__ == "__main__":
-    # Load dataset
-    df = pd.read_csv("dataset_preprocessing.csv")
-    
-    # Pastikan nama kolom 'target' sesuai dengan yang ada di dataset_preprocessing.csv kamu
-    X = df.drop(columns=['target']) 
-    y = df['target']
-    
-    with mlflow.start_run():
-        # Gunakan Regressor karena data kamu terdeteksi sebagai 'continuous'
-        model = RandomForestRegressor(n_estimators=100)
-        model.fit(X, y)
-        
-        # Log model ke MLflow
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(script_dir, "dataset_preprocessing.csv")
+    df = pd.read_csv(data_path)
+
+    y = df["target"]
+    # Konversi ke integer jika ternyata float hasil scaling
+    if y.dtype != int:
+        y = np.where(y > y.mean(), 1, 0)
+
+    X = df.drop(columns=["target"])
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    with mlflow.start_run() as run:
+        model = RandomForestClassifier(n_estimators=100, random_state=42)
+        model.fit(X_train, y_train)
+
+        acc = accuracy_score(y_test, model.predict(X_test))
+        mlflow.log_metric("accuracy", acc)
+
         mlflow.sklearn.log_model(model, "model")
-        print("Model Regressor berhasil dilatih dan disimpan ke MLflow.")
+
+        print(f"Accuracy: {acc}")
+        print(f"Run ID: {run.info.run_id}")
